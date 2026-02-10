@@ -1,0 +1,29 @@
+services:
+  streambox:
+    build: .
+    container_name: streambox
+    ports:
+      - "8080:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+    environment:
+      - TMDB_API_KEY=${TMDB_API_KEY}
+      - RUTRACKER_USERNAME=${RUTRACKER_USERNAME}
+      - RUTRACKER_PASSWORD=${RUTRACKER_PASSWORD}
+      - RUTRACKER_MIRROR=${RUTRACKER_MIRROR:-rutracker.org}
+      - OPENSUBTITLES_API_KEY=${OPENSUBTITLES_API_KEY:-}
+      - PORT=8080
+      - DATA_DIR=/data
+      - MAX_CACHE_GB=${MAX_CACHE_GB:-50}
+    volumes:
+      - streambox-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/api/movies/trending"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  streambox-data:
