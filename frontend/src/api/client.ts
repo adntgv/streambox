@@ -33,7 +33,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 // --- Movies ---
 
 export async function searchMovies(query: string, page = 1): Promise<MovieSearchResult> {
-  return request<MovieSearchResult>(`/movies/search?query=${encodeURIComponent(query)}&page=${page}`)
+  return request<MovieSearchResult>(`/movies/search?q=${encodeURIComponent(query)}&page=${page}`)
 }
 
 export async function getTrending(): Promise<Movie[]> {
