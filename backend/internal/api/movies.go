@@ -106,3 +106,19 @@ func (s *Server) getTrendingAll(c *gin.Context) {
 
 	c.JSON(http.StatusOK, results)
 }
+
+// getPopularHDRezka handles GET /api/popular/hdrezka
+func (s *Server) getPopularHDRezka(c *gin.Context) {
+	if s.hdrezka == nil {
+		c.JSON(http.StatusOK, []any{})
+		return
+	}
+
+	items, err := s.hdrezka.GetPopular()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get hdrezka popular", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, items)
+}

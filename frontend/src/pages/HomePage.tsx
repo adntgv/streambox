@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { MediaItem, WatchHistory } from '../types'
-import { getTrendingAll, getPopularTV, getContinueWatching } from '../api/client'
+import type { MediaItem, PopularItem, WatchHistory } from '../types'
+import { getTrendingAll, getPopularTV, getContinueWatching, getPopularHDRezka } from '../api/client'
 import MediaGrid from '../components/media/MediaGrid'
+import PopularCard from '../components/media/PopularCard'
 
 function ContinueWatchingCard({ item }: { item: WatchHistory }) {
   const posterUrl = item.poster_path
@@ -44,6 +45,7 @@ export default function HomePage() {
   const [trending, setTrending] = useState<MediaItem[]>([])
   const [popularTV, setPopularTV] = useState<MediaItem[]>([])
   const [continueWatching, setContinueWatching] = useState<WatchHistory[]>([])
+  const [hdrezkaPopular, setHdrezkaPopular] = useState<PopularItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -73,9 +75,12 @@ export default function HomePage() {
       }
     }
     load()
-    // Load continue watching separately (non-critical)
+    // Load non-critical sections separately
     getContinueWatching()
       .then(data => setContinueWatching(data || []))
+      .catch(() => {})
+    getPopularHDRezka()
+      .then(data => setHdrezkaPopular(data || []))
       .catch(() => {})
   }, [])
 
@@ -118,6 +123,16 @@ export default function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {continueWatching.map(item => (
               <ContinueWatchingCard key={item.tmdb_id} item={item} />
+            ))}
+          </div>
+        </section>
+      )}
+      {hdrezkaPopular.length > 0 && (
+        <section>
+          <h2 className="text-xl font-semibold text-white mb-4">Popular on HDRezka</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {hdrezkaPopular.map((item, i) => (
+              <PopularCard key={i} item={item} />
             ))}
           </div>
         </section>

@@ -8,6 +8,7 @@ import (
 	"github.com/streambox/backend/internal/api"
 	"github.com/streambox/backend/internal/config"
 	"github.com/streambox/backend/internal/db"
+	"github.com/streambox/backend/internal/hdrezka"
 	"github.com/streambox/backend/internal/stream"
 	"github.com/streambox/backend/internal/subtitle"
 	"github.com/streambox/backend/internal/tmdb"
@@ -56,7 +57,9 @@ func main() {
 		subClient = subtitle.NewClient(cfg.OpenSubtitlesKey)
 	}
 
-	server := api.NewServer(cfg, database, tmdbClient, providers, torrentMgr, streamSrv, subClient)
+	hdrezkaClient := hdrezka.NewClient()
+
+	server := api.NewServer(cfg, database, tmdbClient, providers, torrentMgr, streamSrv, subClient, hdrezkaClient)
 
 	log.Info().Int("port", cfg.Port).Msg("starting StreamBox server")
 	if err := server.Run(); err != nil {

@@ -159,6 +159,14 @@ type MediaSearchResult struct {
 	Results      []MediaItem `json:"results"`
 }
 
+// PopularItem represents a trending item scraped from an external site (e.g. HDRezka).
+type PopularItem struct {
+	Title  string `json:"title"`
+	Poster string `json:"poster"`
+	Info   string `json:"info"`
+	URL    string `json:"url"`
+}
+
 // TorrentFile represents a single file inside a multi-file torrent.
 type TorrentFile struct {
 	Index     int    `json:"index"`

@@ -12,6 +12,7 @@ import type {
   MediaItem,
   MediaSearchResult,
   TorrentFile,
+  PopularItem,
 } from '../types'
 
 const BASE = '/api'
@@ -78,6 +79,12 @@ export async function searchMulti(query: string, page = 1): Promise<MediaSearchR
 
 export async function getTrendingAll(): Promise<MediaItem[]> {
   return request<MediaItem[]>('/trending')
+}
+
+// --- External Popular ---
+
+export async function getPopularHDRezka(): Promise<PopularItem[]> {
+  return request<PopularItem[]>('/popular/hdrezka')
 }
 
 // --- Torrents ---

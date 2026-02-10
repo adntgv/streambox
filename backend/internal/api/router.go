@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/streambox/backend/internal/config"
 	"github.com/streambox/backend/internal/db"
+	"github.com/streambox/backend/internal/hdrezka"
 	"github.com/streambox/backend/internal/tmdb"
 	"github.com/streambox/backend/internal/torrent"
 	"github.com/streambox/backend/internal/stream"
@@ -22,10 +23,11 @@ type Server struct {
 	torrentMgr     *torrent.Manager
 	streamSrv      *stream.Server
 	subtitleClient *subtitle.Client
+	hdrezka        *hdrezka.Client
 	db             *db.DB
 }
 
-func NewServer(cfg *config.Config, database *db.DB, tmdbClient *tmdb.Client, providers *torrent.ProviderRegistry, torrentMgr *torrent.Manager, streamSrv *stream.Server, subClient *subtitle.Client) *Server {
+func NewServer(cfg *config.Config, database *db.DB, tmdbClient *tmdb.Client, providers *torrent.ProviderRegistry, torrentMgr *torrent.Manager, streamSrv *stream.Server, subClient *subtitle.Client, hdrezkaClient *hdrezka.Client) *Server {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -47,6 +49,7 @@ func NewServer(cfg *config.Config, database *db.DB, tmdbClient *tmdb.Client, pro
 		torrentMgr:     torrentMgr,
 		streamSrv:      streamSrv,
 		subtitleClient: subClient,
+		hdrezka:        hdrezkaClient,
 		db:             database,
 	}
 
@@ -73,6 +76,9 @@ func (s *Server) setupRoutes() {
 		// Unified search (movies + TV)
 		api.GET("/search", s.searchMulti)
 		api.GET("/trending", s.getTrendingAll)
+
+		// External popular
+		api.GET("/popular/hdrezka", s.getPopularHDRezka)
 
 		// Torrents
 		api.GET("/torrents/search", s.searchTorrents)

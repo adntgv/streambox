@@ -91,6 +91,15 @@ export interface SubtitleResult {
   downloads: number
 }
 
+// --- External Popular ---
+
+export interface PopularItem {
+  title: string
+  poster: string
+  info: string
+  url: string
+}
+
 // --- TV Series ---
 
 export interface TVShow {
