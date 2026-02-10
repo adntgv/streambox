@@ -27,14 +27,15 @@ const rutrackerTVCategories = "189,2366,2100,911,1531,2370,2102,2104,2109"
 // Rutracker category IDs for anime (HD, DVD, series, films).
 const rutrackerAnimeCategories = "33,1105,1106,599,1389,1391,2491,893"
 
-// Movie forum category names to filter results (in case extra categories slip in).
-var movieForumKeywords = []string{
+// Forum keyword filters (including anime so anime results aren't dropped).
+var movieAndAnimeKeywords = []string{
 	"кино", "фильм", "video", "uhd", "remux", "3d",
+	"аниме", "anime",
 }
 
-// TV forum category keywords.
-var tvForumKeywords = []string{
+var tvAndAnimeKeywords = []string{
 	"сериал", "serial", "series", "season", "сезон", "tv",
+	"аниме", "anime",
 }
 
 // Rutracker is a torrent search provider that scrapes rutracker.org.
@@ -114,7 +115,7 @@ func (r *Rutracker) Search(title, imdbID string, year string) ([]models.TorrentR
 		query += " " + year
 	}
 	categories := rutrackerMovieCategories + "," + rutrackerAnimeCategories
-	return r.doSearch(query, categories, nil)
+	return r.doSearch(query, categories, movieAndAnimeKeywords, title)
 }
 
 // SearchTV searches Rutracker for TV series and anime torrents.
@@ -124,11 +125,12 @@ func (r *Rutracker) SearchTV(title string, seasonNum int, year string) ([]models
 		query += fmt.Sprintf(" сезон %d", seasonNum)
 	}
 	categories := rutrackerTVCategories + "," + rutrackerAnimeCategories
-	return r.doSearch(query, categories, nil)
+	return r.doSearch(query, categories, tvAndAnimeKeywords, title)
 }
 
 // doSearch is the shared search logic for both movies and TV.
-func (r *Rutracker) doSearch(query, categories string, forumKeywords []string) ([]models.TorrentResult, error) {
+// titleQuery is the original title (without year/season) used to filter irrelevant results.
+func (r *Rutracker) doSearch(query, categories string, forumKeywords []string, titleQuery string) ([]models.TorrentResult, error) {
 	if err := r.ensureLoggedIn(); err != nil {
 		return nil, err
 	}
@@ -165,7 +167,7 @@ func (r *Rutracker) doSearch(query, categories string, forumKeywords []string) (
 		return nil, fmt.Errorf("parse search results: %w", err)
 	}
 
-	results := r.parseSearchResults(doc, forumKeywords)
+	results := r.parseSearchResults(doc, forumKeywords, titleQuery)
 
 	// Fetch magnet links for top results (limit to avoid too many requests)
 	limit := 10
@@ -195,8 +197,10 @@ func (r *Rutracker) doSearch(query, categories string, forumKeywords []string) (
 }
 
 // parseSearchResults extracts torrent results from the Rutracker HTML table.
-func (r *Rutracker) parseSearchResults(doc *goquery.Document, forumKeywords []string) []models.TorrentResult {
+// titleQuery filters results where the search term only appears in credits, not the title.
+func (r *Rutracker) parseSearchResults(doc *goquery.Document, forumKeywords []string, titleQuery string) []models.TorrentResult {
 	var results []models.TorrentResult
+	titleQueryLower := strings.ToLower(titleQuery)
 
 	doc.Find("tr.hl-tr").Each(func(i int, s *goquery.Selection) {
 		// Topic title and link
@@ -210,6 +214,18 @@ func (r *Rutracker) parseSearchResults(doc *goquery.Document, forumKeywords []st
 		topicID, _ := s.Attr("data-topic_id")
 		if topicID == "" {
 			topicID = extractTopicID(titleLink.AttrOr("href", ""))
+		}
+
+		// Title relevance check — ensure the search query appears in the
+		// title portion (before parentheses with director/actor names).
+		if titleQueryLower != "" {
+			titlePart := topicTitle
+			if idx := strings.Index(topicTitle, "("); idx > 0 {
+				titlePart = topicTitle[:idx]
+			}
+			if !strings.Contains(strings.ToLower(titlePart), titleQueryLower) {
+				return
+			}
 		}
 
 		// Forum category — filter by keywords
