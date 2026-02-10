@@ -25,8 +25,8 @@ export default function PlayerPage() {
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const progressRef = useRef<HTMLDivElement>(null)
-  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
-  const progressSaveRef = useRef<ReturnType<typeof setInterval>>()
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const progressSaveRef = useRef<ReturnType<typeof setInterval>>(undefined)
   const lastSavedProgressRef = useRef(0)
 
   const [status, setStatus] = useState<StreamStatus | null>(null)
@@ -320,7 +320,7 @@ export default function PlayerPage() {
 
   // --- Double-tap seek (mobile) ---
   const lastTapRef = useRef<{ time: number; x: number }>({ time: 0, x: 0 })
-  const doubleTapTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const doubleTapTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const handleVideoAreaClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('.player-controls')) return
