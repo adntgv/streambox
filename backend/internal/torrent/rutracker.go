@@ -24,6 +24,9 @@ const rutrackerMovieCategories = "313,312,2198,2199,1950,2540"
 // Rutracker category IDs for TV series (foreign HD/SD, Russian series).
 const rutrackerTVCategories = "189,2366,2100,911,1531,2370,2102,2104,2109"
 
+// Rutracker category IDs for anime (HD, DVD, series, films).
+const rutrackerAnimeCategories = "33,1105,1106,599,1389,1391,2491,893"
+
 // Movie forum category names to filter results (in case extra categories slip in).
 var movieForumKeywords = []string{
 	"кино", "фильм", "video", "uhd", "remux", "3d",
@@ -104,21 +107,24 @@ func (r *Rutracker) ensureLoggedIn() error {
 }
 
 // Search searches Rutracker for movie torrents matching the given title.
+// Also searches anime categories for anime films.
 func (r *Rutracker) Search(title, imdbID string, year string) ([]models.TorrentResult, error) {
 	query := title
 	if year != "" {
 		query += " " + year
 	}
-	return r.doSearch(query, rutrackerMovieCategories, movieForumKeywords)
+	categories := rutrackerMovieCategories + "," + rutrackerAnimeCategories
+	return r.doSearch(query, categories, nil)
 }
 
-// SearchTV searches Rutracker for TV series torrents.
+// SearchTV searches Rutracker for TV series and anime torrents.
 func (r *Rutracker) SearchTV(title string, seasonNum int, year string) ([]models.TorrentResult, error) {
 	query := title
 	if seasonNum > 0 {
 		query += fmt.Sprintf(" сезон %d", seasonNum)
 	}
-	return r.doSearch(query, rutrackerTVCategories, tvForumKeywords)
+	categories := rutrackerTVCategories + "," + rutrackerAnimeCategories
+	return r.doSearch(query, categories, nil)
 }
 
 // doSearch is the shared search logic for both movies and TV.
