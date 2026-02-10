@@ -71,9 +71,38 @@ func NewManager(client *TorrentClient, database *db.DB) *Manager {
 	}
 }
 
-// StartStream adds a magnet URI to the torrent client, identifies the largest
-// video file, creates a reader, and returns a StreamSession.
-func (m *Manager) StartStream(tmdbID int, title, magnetURI string) (*models.StreamSession, error) {
+// ListFiles adds a magnet URI, waits for metadata, and returns all video files.
+func (m *Manager) ListFiles(magnetURI string) ([]models.TorrentFile, error) {
+	t, err := m.client.AddMagnet(magnetURI)
+	if err != nil {
+		return nil, fmt.Errorf("add magnet: %w", err)
+	}
+
+	videoExts := map[string]bool{
+		".mp4": true, ".mkv": true, ".avi": true, ".webm": true,
+		".mov": true, ".wmv": true, ".flv": true, ".m4v": true,
+	}
+
+	var files []models.TorrentFile
+	for i, f := range t.Files() {
+		ext := strings.ToLower(filepath.Ext(f.DisplayPath()))
+		if !videoExts[ext] {
+			continue
+		}
+		files = append(files, models.TorrentFile{
+			Index:     i,
+			Path:      f.DisplayPath(),
+			Size:      f.Length(),
+			SizeHuman: formatFileSize(f.Length()),
+		})
+	}
+
+	return files, nil
+}
+
+// StartStream adds a magnet URI to the torrent client, identifies the video
+// file (by fileIndex or largest), creates a reader, and returns a StreamSession.
+func (m *Manager) StartStream(tmdbID int, title, magnetURI string, fileIndex int) (*models.StreamSession, error) {
 	log.Info().Str("title", title).Msg("starting stream")
 
 	t, err := m.client.AddMagnet(magnetURI)
@@ -81,7 +110,16 @@ func (m *Manager) StartStream(tmdbID int, title, magnetURI string) (*models.Stre
 		return nil, fmt.Errorf("add magnet: %w", err)
 	}
 
-	videoFile := findLargestVideoFile(t.Files())
+	var videoFile *atorrent.File
+	if fileIndex >= 0 {
+		allFiles := t.Files()
+		if fileIndex < len(allFiles) {
+			videoFile = allFiles[fileIndex]
+		}
+	}
+	if videoFile == nil {
+		videoFile = findLargestVideoFile(t.Files())
+	}
 	if videoFile == nil {
 		t.Drop()
 		return nil, fmt.Errorf("no video file found in torrent")
@@ -340,4 +378,15 @@ func detectContentType(path string) string {
 	default:
 		return "application/octet-stream"
 	}
+}
+
+func formatFileSize(bytes int64) string {
+	const (
+		gb = 1024 * 1024 * 1024
+		mb = 1024 * 1024
+	)
+	if bytes >= gb {
+		return fmt.Sprintf("%.1f GB", float64(bytes)/float64(gb))
+	}
+	return fmt.Sprintf("%.0f MB", float64(bytes)/float64(mb))
 }

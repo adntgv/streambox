@@ -6,6 +6,12 @@ import type {
   StreamStatus,
   SubtitleResult,
   WatchHistory,
+  TVShow,
+  TVShowSearchResult,
+  Season,
+  MediaItem,
+  MediaSearchResult,
+  TorrentFile,
 } from '../types'
 
 const BASE = '/api'
@@ -42,6 +48,38 @@ export async function getMovieDetails(id: number): Promise<Movie> {
   return request<Movie>(`/movies/${id}`)
 }
 
+// --- TV Shows ---
+
+export async function searchTV(query: string, page = 1): Promise<TVShowSearchResult> {
+  return request<TVShowSearchResult>(`/tv/search?q=${encodeURIComponent(query)}&page=${page}`)
+}
+
+export async function getTrendingTV(): Promise<TVShow[]> {
+  return request<TVShow[]>('/tv/trending')
+}
+
+export async function getPopularTV(page = 1): Promise<TVShowSearchResult> {
+  return request<TVShowSearchResult>(`/tv/popular?page=${page}`)
+}
+
+export async function getTVDetails(id: number): Promise<TVShow> {
+  return request<TVShow>(`/tv/${id}`)
+}
+
+export async function getSeasonDetails(tvId: number, seasonNumber: number): Promise<Season> {
+  return request<Season>(`/tv/${tvId}/season/${seasonNumber}`)
+}
+
+// --- Unified Search ---
+
+export async function searchMulti(query: string, page = 1): Promise<MediaSearchResult> {
+  return request<MediaSearchResult>(`/search?q=${encodeURIComponent(query)}&page=${page}`)
+}
+
+export async function getTrendingAll(): Promise<MediaItem[]> {
+  return request<MediaItem[]>('/trending')
+}
+
 // --- Torrents ---
 
 export async function searchTorrents(
@@ -60,16 +98,36 @@ export async function searchTorrents(
   return data.results || []
 }
 
+export async function searchTVTorrents(
+  title: string,
+  season: number,
+  year?: string,
+): Promise<TorrentResult[]> {
+  const params = new URLSearchParams({ title, season: String(season) })
+  if (year) params.set('year', year)
+  const data = await request<{ results: TorrentResult[] }>(`/torrents/search/tv?${params}`)
+  return data.results || []
+}
+
+export async function listTorrentFiles(magnetUri: string): Promise<TorrentFile[]> {
+  const data = await request<{ files: TorrentFile[] }>('/torrents/files', {
+    method: 'POST',
+    body: JSON.stringify({ magnet_uri: magnetUri }),
+  })
+  return data.files || []
+}
+
 // --- Streaming ---
 
 export async function startStream(
   tmdbId: number,
   title: string,
   magnetUri: string,
+  fileIndex = -1,
 ): Promise<StreamSession> {
   return request<StreamSession>('/stream/start', {
     method: 'POST',
-    body: JSON.stringify({ tmdb_id: tmdbId, title, magnet_uri: magnetUri }),
+    body: JSON.stringify({ tmdb_id: tmdbId, title, magnet_uri: magnetUri, file_index: fileIndex }),
   })
 }
 

@@ -92,3 +92,77 @@ type SubtitleResult struct {
 	Name     string `json:"name"`
 	Downloads int   `json:"downloads"`
 }
+
+// ----- TV Series types -----
+
+type TVShow struct {
+	ID              int       `json:"id"`
+	Name            string    `json:"name"`
+	Overview        string    `json:"overview"`
+	PosterPath      string    `json:"poster_path"`
+	BackdropPath    string    `json:"backdrop_path"`
+	FirstAirDate    string    `json:"first_air_date"`
+	VoteAverage     float64   `json:"vote_average"`
+	NumberOfSeasons int       `json:"number_of_seasons,omitempty"`
+	NumberOfEpisodes int      `json:"number_of_episodes,omitempty"`
+	IMDbID          string    `json:"imdb_id,omitempty"`
+	Genres          []Genre   `json:"genres,omitempty"`
+	Seasons         []Season  `json:"seasons,omitempty"`
+}
+
+type Season struct {
+	ID            int       `json:"id"`
+	SeasonNumber  int       `json:"season_number"`
+	Name          string    `json:"name"`
+	Overview      string    `json:"overview"`
+	PosterPath    string    `json:"poster_path"`
+	AirDate       string    `json:"air_date"`
+	EpisodeCount  int       `json:"episode_count"`
+	Episodes      []Episode `json:"episodes,omitempty"`
+}
+
+type Episode struct {
+	ID            int     `json:"id"`
+	EpisodeNumber int     `json:"episode_number"`
+	SeasonNumber  int     `json:"season_number"`
+	Name          string  `json:"name"`
+	Overview      string  `json:"overview"`
+	StillPath     string  `json:"still_path"`
+	AirDate       string  `json:"air_date"`
+	VoteAverage   float64 `json:"vote_average"`
+	Runtime       int     `json:"runtime"`
+}
+
+type TVShowSearchResult struct {
+	Page         int      `json:"page"`
+	TotalPages   int      `json:"total_pages"`
+	TotalResults int      `json:"total_results"`
+	Results      []TVShow `json:"results"`
+}
+
+// MediaItem is a unified type for mixed movie/TV content.
+type MediaItem struct {
+	ID           int     `json:"id"`
+	MediaType    string  `json:"media_type"`
+	Title        string  `json:"title"`
+	Overview     string  `json:"overview"`
+	PosterPath   string  `json:"poster_path"`
+	BackdropPath string  `json:"backdrop_path"`
+	Date         string  `json:"date"`
+	VoteAverage  float64 `json:"vote_average"`
+}
+
+type MediaSearchResult struct {
+	Page         int         `json:"page"`
+	TotalPages   int         `json:"total_pages"`
+	TotalResults int         `json:"total_results"`
+	Results      []MediaItem `json:"results"`
+}
+
+// TorrentFile represents a single file inside a multi-file torrent.
+type TorrentFile struct {
+	Index     int    `json:"index"`
+	Path      string `json:"path"`
+	Size      int64  `json:"size"`
+	SizeHuman string `json:"size_human"`
+}

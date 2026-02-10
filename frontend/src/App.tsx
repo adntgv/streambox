@@ -3,6 +3,7 @@ import Layout from './components/layout/Layout'
 import HomePage from './pages/HomePage'
 import SearchPage from './pages/SearchPage'
 import MoviePage from './pages/MoviePage'
+import TVShowPage from './pages/TVShowPage'
 import PlayerPage from './pages/PlayerPage'
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/movie/:id" element={<MoviePage />} />
+          <Route path="/tv/:id" element={<TVShowPage />} />
         </Route>
         {/* PlayerPage is fullscreen, no layout */}
         <Route path="/watch/:sessionId" element={<PlayerPage />} />

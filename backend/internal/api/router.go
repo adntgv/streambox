@@ -63,8 +63,21 @@ func (s *Server) setupRoutes() {
 		api.GET("/movies/popular", s.getPopular)
 		api.GET("/movies/:id", s.getMovieDetails)
 
+		// TV Shows (TMDB proxy)
+		api.GET("/tv/search", s.searchTV)
+		api.GET("/tv/trending", s.getTrendingTV)
+		api.GET("/tv/popular", s.getPopularTV)
+		api.GET("/tv/:id", s.getTVDetails)
+		api.GET("/tv/:id/season/:season", s.getSeasonDetails)
+
+		// Unified search (movies + TV)
+		api.GET("/search", s.searchMulti)
+		api.GET("/trending", s.getTrendingAll)
+
 		// Torrents
 		api.GET("/torrents/search", s.searchTorrents)
+		api.GET("/torrents/search/tv", s.searchTVTorrents)
+		api.POST("/torrents/files", s.listTorrentFiles)
 
 		// Streaming
 		api.POST("/stream/start", s.startStream)

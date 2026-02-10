@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import type { Movie } from '../types'
-import { searchMovies } from '../api/client'
-import MovieGrid from '../components/movie/MovieGrid'
+import type { MediaItem } from '../types'
+import { searchMulti } from '../api/client'
+import MediaGrid from '../components/media/MediaGrid'
 
 export default function SearchPage() {
   const [searchParams] = useSearchParams()
   const query = searchParams.get('q') || ''
-  const [movies, setMovies] = useState<Movie[]>([])
+  const [results, setResults] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -16,7 +16,7 @@ export default function SearchPage() {
   useEffect(() => {
     if (!query) return
     setPage(1)
-    setMovies([])
+    setResults([])
   }, [query])
 
   useEffect(() => {
@@ -26,8 +26,8 @@ export default function SearchPage() {
       try {
         setLoading(true)
         setError(null)
-        const data = await searchMovies(query, page)
-        setMovies(data.results || [])
+        const data = await searchMulti(query, page)
+        setResults(data.results || [])
         setTotalPages(data.total_pages)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Search failed')
@@ -41,7 +41,7 @@ export default function SearchPage() {
   if (!query) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <p className="text-zinc-400 text-lg">Enter a search query to find movies</p>
+        <p className="text-zinc-400 text-lg">Enter a search query to find movies and TV shows</p>
       </div>
     )
   }
@@ -62,11 +62,11 @@ export default function SearchPage() {
         <div className="text-red-400 mb-4">{error}</div>
       )}
 
-      {!loading && movies.length === 0 && (
+      {!loading && results.length === 0 && (
         <p className="text-zinc-400">No results found.</p>
       )}
 
-      {movies.length > 0 && <MovieGrid movies={movies} />}
+      {results.length > 0 && <MediaGrid items={results} />}
 
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-4 mt-8">

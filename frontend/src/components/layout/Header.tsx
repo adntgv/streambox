@@ -31,7 +31,7 @@ export default function Header() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search movies..."
+            placeholder="Search movies and TV shows..."
             className="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white placeholder-zinc-400 border border-zinc-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm"
           />
         </form>

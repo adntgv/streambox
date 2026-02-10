@@ -21,9 +21,17 @@ import (
 // Rutracker category IDs for movies (HD video, UHD, Russian films, animation).
 const rutrackerMovieCategories = "313,312,2198,2199,1950,2540"
 
+// Rutracker category IDs for TV series (foreign HD/SD, Russian series).
+const rutrackerTVCategories = "189,2366,2100,911,1531,2370,2102,2104,2109"
+
 // Movie forum category names to filter results (in case extra categories slip in).
 var movieForumKeywords = []string{
 	"кино", "фильм", "video", "uhd", "remux", "3d",
+}
+
+// TV forum category keywords.
+var tvForumKeywords = []string{
+	"сериал", "serial", "series", "season", "сезон", "tv",
 }
 
 // Rutracker is a torrent search provider that scrapes rutracker.org.
@@ -95,19 +103,32 @@ func (r *Rutracker) ensureLoggedIn() error {
 	return nil
 }
 
-// Search searches Rutracker for torrents matching the given title.
+// Search searches Rutracker for movie torrents matching the given title.
 func (r *Rutracker) Search(title, imdbID string, year string) ([]models.TorrentResult, error) {
-	if err := r.ensureLoggedIn(); err != nil {
-		return nil, err
-	}
-
 	query := title
 	if year != "" {
 		query += " " + year
 	}
+	return r.doSearch(query, rutrackerMovieCategories, movieForumKeywords)
+}
+
+// SearchTV searches Rutracker for TV series torrents.
+func (r *Rutracker) SearchTV(title string, seasonNum int, year string) ([]models.TorrentResult, error) {
+	query := title
+	if seasonNum > 0 {
+		query += fmt.Sprintf(" сезон %d", seasonNum)
+	}
+	return r.doSearch(query, rutrackerTVCategories, tvForumKeywords)
+}
+
+// doSearch is the shared search logic for both movies and TV.
+func (r *Rutracker) doSearch(query, categories string, forumKeywords []string) ([]models.TorrentResult, error) {
+	if err := r.ensureLoggedIn(); err != nil {
+		return nil, err
+	}
 
 	searchURL := fmt.Sprintf("https://%s/forum/tracker.php?nm=%s&c=%s",
-		r.mirror, url.QueryEscape(query), rutrackerMovieCategories)
+		r.mirror, url.QueryEscape(query), categories)
 
 	req, err := http.NewRequest("GET", searchURL, nil)
 	if err != nil {
@@ -138,6 +159,37 @@ func (r *Rutracker) Search(title, imdbID string, year string) ([]models.TorrentR
 		return nil, fmt.Errorf("parse search results: %w", err)
 	}
 
+	results := r.parseSearchResults(doc, forumKeywords)
+
+	// Fetch magnet links for top results (limit to avoid too many requests)
+	limit := 10
+	if len(results) < limit {
+		limit = len(results)
+	}
+	for i := 0; i < limit; i++ {
+		if results[i].TopicID != "" {
+			magnet, err := r.getMagnet(results[i].TopicID)
+			if err != nil {
+				log.Warn().Err(err).Str("topic", results[i].TopicID).Msg("failed to get magnet")
+				continue
+			}
+			results[i].MagnetURI = magnet
+		}
+	}
+
+	// Filter out results without magnets
+	var filtered []models.TorrentResult
+	for _, res := range results {
+		if res.MagnetURI != "" {
+			filtered = append(filtered, res)
+		}
+	}
+
+	return filtered, nil
+}
+
+// parseSearchResults extracts torrent results from the Rutracker HTML table.
+func (r *Rutracker) parseSearchResults(doc *goquery.Document, forumKeywords []string) []models.TorrentResult {
 	var results []models.TorrentResult
 
 	doc.Find("tr.hl-tr").Each(func(i int, s *goquery.Selection) {
@@ -154,16 +206,16 @@ func (r *Rutracker) Search(title, imdbID string, year string) ([]models.TorrentR
 			topicID = extractTopicID(titleLink.AttrOr("href", ""))
 		}
 
-		// Forum category — filter out non-movie results (soundtracks, comics, etc.)
+		// Forum category — filter by keywords
 		forumName := strings.ToLower(s.Find("td.f-name-col a").Text())
-		isMovie := false
-		for _, kw := range movieForumKeywords {
+		matched := len(forumKeywords) == 0 // if no keywords, accept all
+		for _, kw := range forumKeywords {
 			if strings.Contains(forumName, kw) {
-				isMovie = true
+				matched = true
 				break
 			}
 		}
-		if !isMovie {
+		if !matched {
 			return
 		}
 
@@ -200,31 +252,7 @@ func (r *Rutracker) Search(title, imdbID string, year string) ([]models.TorrentR
 		})
 	})
 
-	// Fetch magnet links for top results (limit to avoid too many requests)
-	limit := 10
-	if len(results) < limit {
-		limit = len(results)
-	}
-	for i := 0; i < limit; i++ {
-		if results[i].TopicID != "" {
-			magnet, err := r.getMagnet(results[i].TopicID)
-			if err != nil {
-				log.Warn().Err(err).Str("topic", results[i].TopicID).Msg("failed to get magnet")
-				continue
-			}
-			results[i].MagnetURI = magnet
-		}
-	}
-
-	// Filter out results without magnets
-	var filtered []models.TorrentResult
-	for _, res := range results {
-		if res.MagnetURI != "" {
-			filtered = append(filtered, res)
-		}
-	}
-
-	return filtered, nil
+	return results
 }
 
 // getMagnet fetches the magnet link from a topic page.

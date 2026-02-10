@@ -27,6 +27,11 @@ func (r *ProviderRegistry) Register(p Provider) {
 	r.providers = append(r.providers, p)
 }
 
+// TVSearcher is an optional interface for providers that support TV series search.
+type TVSearcher interface {
+	SearchTV(title string, seasonNum int, year string) ([]models.TorrentResult, error)
+}
+
 // Search queries all registered providers concurrently and returns
 // aggregated results.
 func (r *ProviderRegistry) Search(title, imdbID string, year string) ([]models.TorrentResult, error) {
@@ -49,6 +54,37 @@ func (r *ProviderRegistry) Search(title, imdbID string, year string) ([]models.T
 			allResults = append(allResults, results...)
 			mu.Unlock()
 		}(p)
+	}
+
+	wg.Wait()
+	return allResults, nil
+}
+
+// SearchTV queries providers that implement TVSearcher concurrently.
+func (r *ProviderRegistry) SearchTV(title string, seasonNum int, year string) ([]models.TorrentResult, error) {
+	var (
+		allResults []models.TorrentResult
+		mu         sync.Mutex
+		wg         sync.WaitGroup
+	)
+
+	for _, p := range r.providers {
+		tvp, ok := p.(TVSearcher)
+		if !ok {
+			continue
+		}
+		wg.Add(1)
+		go func(prov TVSearcher, name string) {
+			defer wg.Done()
+			results, err := prov.SearchTV(title, seasonNum, year)
+			if err != nil {
+				log.Warn().Err(err).Str("provider", name).Msg("tv torrent search failed")
+				return
+			}
+			mu.Lock()
+			allResults = append(allResults, results...)
+			mu.Unlock()
+		}(tvp, p.Name())
 	}
 
 	wg.Wait()

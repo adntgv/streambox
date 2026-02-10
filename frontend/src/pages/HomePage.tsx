@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { Movie, WatchHistory } from '../types'
-import { getTrending, getPopular, getContinueWatching } from '../api/client'
-import MovieGrid from '../components/movie/MovieGrid'
+import type { MediaItem, WatchHistory } from '../types'
+import { getTrendingAll, getPopularTV, getContinueWatching } from '../api/client'
+import MediaGrid from '../components/media/MediaGrid'
 
 function ContinueWatchingCard({ item }: { item: WatchHistory }) {
   const posterUrl = item.poster_path
@@ -41,8 +41,8 @@ function ContinueWatchingCard({ item }: { item: WatchHistory }) {
 }
 
 export default function HomePage() {
-  const [trending, setTrending] = useState<Movie[]>([])
-  const [popular, setPopular] = useState<Movie[]>([])
+  const [trending, setTrending] = useState<MediaItem[]>([])
+  const [popularTV, setPopularTV] = useState<MediaItem[]>([])
   const [continueWatching, setContinueWatching] = useState<WatchHistory[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -51,14 +51,23 @@ export default function HomePage() {
     async function load() {
       try {
         setLoading(true)
-        const [trendingData, popularData] = await Promise.all([
-          getTrending(),
-          getPopular(),
+        const [trendingData, popularTVData] = await Promise.all([
+          getTrendingAll(),
+          getPopularTV(),
         ])
         setTrending(trendingData)
-        setPopular(popularData.results || [])
+        setPopularTV((popularTVData.results || []).map(s => ({
+          id: s.id,
+          media_type: 'tv' as const,
+          title: s.name,
+          overview: s.overview,
+          poster_path: s.poster_path,
+          backdrop_path: s.backdrop_path,
+          date: s.first_air_date,
+          vote_average: s.vote_average,
+        })))
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load movies')
+        setError(err instanceof Error ? err.message : 'Failed to load content')
       } finally {
         setLoading(false)
       }
@@ -113,8 +122,8 @@ export default function HomePage() {
           </div>
         </section>
       )}
-      {trending.length > 0 && <MovieGrid movies={trending} title="Trending" />}
-      {popular.length > 0 && <MovieGrid movies={popular} title="Popular" />}
+      {trending.length > 0 && <MediaGrid items={trending} title="Trending" />}
+      {popularTV.length > 0 && <MediaGrid items={popularTV} title="Popular TV Shows" />}
     </div>
   )
 }
